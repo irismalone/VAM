@@ -1,0 +1,228 @@
+---
+title: "Advanced Data Visualization in R"
+author: Iris Malone
+date: \today
+output:
+  beamer_presentation:
+    theme: Madrid
+---
+
+```{r, echo=FALSE, results='hide'}
+# Simple Example: Look at Waves of Democratization from 1800-2012
+suppressMessages(require(psData))
+df = suppressMessages(PolityGet(vars = 'polity2', OutCountryID = 'imf'))
+df$dem = ifelse(df$polity2 >= 6, 1, 0)
+df$aut = ifelse(df$polity2 <= -6, 1, 0)
+
+# re-shape the data
+year = unique(df$year)
+numdems = tapply(df$dem, df$year, sum, na.rm = T)
+numauts = tapply(df$aut, df$year, sum, na.rm = T)
+```
+
+
+# Outline
+What I'm Covering: Good stuff. 
+
+- pro/cons different graphing packages 
+- ggplot and the grammar of graphics 
+- visualizing summary stats, regression results 
+- ggmap and basic map visualization 
+
+What I'm Not Covering:  
+
+- 3D Visualization. 
+- Network Analysis, e.g. igraph 
+- Interactive Visualization, e.g. Shiny, D3  \alert{Next VAM with Simon - Dec 4th!}
+
+# Choosing a Visualization Package
+
+Toy Example. 
+
+Options:
+
+- plot (graphics)
+
+# Method 1: Plot
+Code: 
+```{r, results=FALSE, fig.show='hide'}
+plot(year, numdems, #x, y 		
+  #aesthetics stuff (color, plot type, size)
+	col = "blue", type = "l" , lwd=3, 
+  #main title and axes labels
+	main = "Number of Democracies and Autocracies, 1800-2012", 
+	xlab = "Year", 
+	ylab = "Count")
+lines(year, numauts, type = "l", col = "red", lwd =3) 
+legend("topleft", #location of legend 
+  legend=c("Democracies","Autocracies"), #legend labels/var
+  col = c(4, 2), # colors for each, 
+  #legend colors default 1= black, 2 = red, 4=blue
+  lty = c(1, 1),
+  title="Regime Type") # Name of Legend
+
+```
+
+#Option 1: Plot
+Visual:
+
+```{r, echo=FALSE}
+plot(year, numdems, #x, y 		
+  #aesthetics (color, plot type, size)
+	col = "blue", type = "l" , lwd=3, 
+  #main title and axes labels
+	main = "Number of Democracies and Autocracies, 1800-2012", 
+	xlab = "Year", 
+	ylab = "Count")
+lines(year, numauts, type = "l", col = "red", lwd =3) 
+legend("topleft", #location of legend 
+  legend=c("Democracies","Autocracies"), #legend labels/var
+  col = c(4, 2), # colors for each, 
+  #legend colors default 1= black, 2 = red, 4=blue
+  lty = c(1, 1),
+  title="Regime Type") # Name of Legend
+```
+
+# Choosing a Visualization Package
+
+Toy Example. 
+
+Options:
+
+- plot (graphics)  \alert{Ancient.}  \alert{Annoying syntax.}  \alert{Not great support.} 
+- xyplot (lattice)
+
+# Option 2: xyplot
+
+Step 1: Build First Layer for Number of Democracies.
+
+```{r}
+suppressMessages(require(lattice))
+layer1 = xyplot(numdems ~ year, #format: y ~ x
+	type = "l",
+	# add title
+	main = "Number of Democracies and Autocracies, 1800-2012", 
+	col = "blue", lwd=1,
+	#legend 
+	key=list(space="right", # location 
+	# aesthetics (aes)
+  lines=list(col=c("red","blue"), lty=c(1,1), lwd=2), 
+	#labels for each line
+  text=list(c("Autocracies","Democracies")))) 
+```
+
+# Option 2: xyplot
+
+Step 2: Build Second Layer for Number of Autocracies.
+
+```{r}
+layer2 = xyplot(numauts ~ year, 
+		type = "l", 
+		col = "red")
+```
+
+# Option 2: xyplot
+
+Step 3: Add the layers.
+
+```{r, fig.width=12, fig.height = 5}
+#need extra package to put layers on top
+suppressMessages(require(latticeExtra)) 
+layer1 + layer2
+```
+
+# Graphics Packages
+Options:
+
+- plot (graphics)  \alert{Ancient.} \alert{Annoying syntax.} \alert{Not great support.} 
+- xyplot (lattice)  \alert{How many layers?}  \alert{Weird rigidity.}  \alert{Ugly default style.} 
+- ggplot (ggplot2)
+
+# Option 3:
+
+```{r, fig.show='hide'}
+suppressMessages(require(ggplot2))
+ggplot(data = NULL) + 
+ geom_line(aes(x=year, y = numdems, colour = "numdems")) + #line for numdems
+ geom_line(aes(x=year, y = numauts, colour = "numauts")) + #line for numauts
+ xlab("Year") + ylab("Count") + 
+ ggtitle("Number of Democracies and Autocracies, 1800-2012") + 	#title
+ # legend aesthetics
+ scale_color_manual(name = "Regime Type", # Name
+ labels = c(numdems="Democracies", numauts = "Autocracies"), #labels for each var
+	values=c(numdems=4,numauts=2))
+```
+
+# Option 3:
+
+```{r, echo=FALSE, fig.width=12, fig.height = 6}
+
+ggplot(data = NULL, aes(x = year)) + 
+	geom_line(aes(y = numdems, colour = "numdems"), lwd = 1) + #line for numdems
+	geom_line(aes(y = numauts, colour = "numauts"), lwd = 1) + #line for numauts
+	xlab("Year") + # x-axis label
+	ylab("Count") + #y-axis label
+	ggtitle("Number of Democracies and Autocracies, 1800-2012") + 	#title
+	scale_color_manual(name = "Regime Type", # Name of Legend
+	labels = c(numdems="Democracies", numauts = "Autocracies"), #legend labels for each var
+	values=c(numdems=4,numauts=2))
+```
+
+#Summary of Options:
+
+- plot (graphics)
+- xyplot (lattice)
+- ggplot (ggplot2)
+
+# Why ggplot?
+- Very pretty  
+- Used professionally 
+
+# Why ggplot?
+NYT.
+\begin{center}
+\includegraphics[width=11cm]{/users/irismalone/Dropbox/VAM/pics/nytggplot.png}
+\end{center}
+
+# Why ggplot?
+\begin{center}
+\includegraphics[width=8cm]{/users/irismalone/Dropbox/VAM/pics/nyt2.png}
+\end{center}
+
+# Why ggplot?
+\begin{tabular}{rl}  
+           & \begin{tabular}{r}
+             \parbox{0.35\linewidth}{%  change the parbox width as appropiate
+             - Very pretty \\
+             - Used professionally \\
+- Easy to manipulate  \\
+- Great support online  \\
+- Knowledge transfers to other packages/languages (ggvis, Shiny, Python)  \\
+- \alert{Steep Learning Curve}  \\
+- \alert{Lots of syntax}  \\
+- \alert{Defaults to weird colors.}  \\
+
+- \textbf{Summary: Worth it.}
+    } \\
+         \end{tabular}  
+          \begin{tabular}{l}
+        \includegraphics[width=5cm]{/users/irismalone/Dropbox/VAM/pics/dogedog.jpg}
+           \end{tabular}
+\end{tabular}
+
+#Visualizing Basics
+
+#Visualizing Regressions
+
+# Visualizing Maps
+
+# Summary
+\begin{center}
+\includegraphics[width=5cm]{/users/irismalone/Dropbox/VAM/pics/ggplot.jpg}
+\end{center}
+
+# Spatial Visualization
+
+# ggmap
+
+
